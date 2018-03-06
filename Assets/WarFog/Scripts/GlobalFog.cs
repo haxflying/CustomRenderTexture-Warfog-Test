@@ -6,7 +6,7 @@ namespace UnityStandardAssets.ImageEffects
     [ExecuteInEditMode]
     [RequireComponent (typeof(Camera))]
     [AddComponentMenu ("Image Effects/Rendering/Global Fog")]
-    class GlobalFog : PostEffectsBase
+    class GlobalFog : MonoBehaviour
 	{
 		[Tooltip("Apply distance-based fog?")]
         public bool  distanceFog = true;
@@ -22,32 +22,23 @@ namespace UnityStandardAssets.ImageEffects
         public float heightDensity = 2.0f;
 		[Tooltip("Push fog away from the camera by this amount")]
         public float startDistance = 0.0f;
+        [Range(0,0.8f)]
+        public float fogDensity;
 
 
         public Shader fogShader = null;
         private Material fogMaterial = null;
 
-
-        public override bool CheckResources ()
-		{
-            CheckSupport (true);
-
-            fogMaterial = CheckShaderAndCreateMaterial (fogShader, fogMaterial);
-
-            if (!isSupported)
-                ReportAutoDisable ();
-            return isSupported;
-        }
-
         [ImageEffectOpaque]
         void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
-            if (CheckResources() == false || (!distanceFog && !heightFog))
+            if ((!distanceFog && !heightFog))
             {
                 Graphics.Blit(source, destination);
                 return;
             }
 
+            fogMaterial = new Material(fogShader);
             Camera cam = GetComponent<Camera>();
             Transform camtr = cam.transform;
 
@@ -75,7 +66,7 @@ namespace UnityStandardAssets.ImageEffects
             
 
             var sceneMode = RenderSettings.fogMode;
-            var sceneDensity = RenderSettings.fogDensity;
+            var sceneDensity = fogDensity == 0 ? RenderSettings.fogDensity : fogDensity;
             var sceneStart = RenderSettings.fogStartDistance;
             var sceneEnd = RenderSettings.fogEndDistance;
             Vector4 sceneParams;

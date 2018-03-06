@@ -2,6 +2,7 @@ Shader "Hidden/GlobalFog" {
 Properties {
 	_MainTex ("Base (RGB)", 2D) = "black" {}
 	_ControllerTex("ControllerTex",2D) = "white"{}
+	_NoiseTex("NoiseTex",2D) = "white" {}
 }
 
 CGINCLUDE
@@ -9,6 +10,7 @@ CGINCLUDE
 	#include "UnityCG.cginc"
 
 	sampler2D _ControllerTex;
+	sampler2D _NoiseTex;
 	uniform sampler2D _MainTex;
 	uniform sampler2D_float _CameraDepthTexture;
 	
@@ -24,8 +26,8 @@ CGINCLUDE
 	int4 _SceneFogMode; // x = fog mode, y = use radial flag
 	float4 _SceneFogParams;
 	#ifndef UNITY_APPLY_FOG
-	half4 unity_FogColor;
-	half4 unity_FogDensity;
+	//half4 unity_FogColor;
+	//half4 unity_FogDensity;
 	#endif	
 
 	uniform float4 _MainTex_TexelSize;
@@ -144,6 +146,8 @@ CGINCLUDE
 
 		// Compute fog amount
 		half fogFac = ComputeFogFactor (max(0.0,g));
+
+		float newFac = fogFac;
 		// Do not fog skybox
 		if (dpth == _DistanceParams.y)
 			fogFac = 1.0;
@@ -152,15 +156,20 @@ CGINCLUDE
 		{
 			//filter for war fog
 			float2 cuv = wsPos.xz/ 10.0 + 0.5;
+			//float2 noise = tex2D(_MainTex, cuv).rg - 0.5;
+			//wsPos.xz += noise;	
+			//cuv = wsPos.xz/ 10.0 + 0.5;
 			cuv = 1 - cuv;
 			float wctrl = tex2D(_ControllerTex, cuv);
+					
 			//float ctrl = tex2D(_ControllerTex, UnityStereoTransformScreenSpaceTex(i.uv));
 			//return fixed4(ctrl, 0, 0, 0);
-			fogFac = wctrl > 0.05 ? 1.0 : fogFac;
+			float blendFac = wctrl;// > 0.0 ? wctrl : fogFac;
+			newFac = lerp(fogFac, 1.0, blendFac);			
 		}
 		// Lerp between fog color & original scene color
 		// by fog amount		
-		return lerp (unity_FogColor, sceneColor, fogFac);
+		return lerp (unity_FogColor, sceneColor, newFac);
 	}
 
 ENDCG
